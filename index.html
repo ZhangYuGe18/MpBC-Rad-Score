@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MpBC-Rad Score</title>
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:'Segoe UI',Arial,sans-serif;background:#f5f7fa;color:#2c3e50}
+        .header{background:#2c3e50;color:#fff;padding:22px;text-align:center}
+        .header h1{font-size:20px} .header p{font-size:12px;color:#bdc3c7;margin-top:4px}
+        .wrap{max-width:1050px;margin:28px auto;display:flex;gap:22px;padding:0 18px}
+        .card{background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.07);padding:22px}
+        .left{flex:0 0 360px} .right{flex:1}
+        h2{font-size:15px;border-bottom:2px solid #3498db;padding-bottom:7px;margin-bottom:16px}
+        .fg{margin-bottom:13px;display:flex;align-items:center}
+        .fg label{width:125px;font-size:12.5px;font-weight:600;color:#555}
+        .fg input,.fg select{flex:1;padding:7px 9px;border:1px solid #ddd;border-radius:4px;font-size:12.5px}
+        .btn{width:100%;padding:11px;background:#3498db;color:#fff;border:none;border-radius:4px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px}
+        .btn:hover{background:#2980b9}
+        .btn:disabled{background:#bdc3c7;cursor:not-allowed}
+        .ph{color:#aaa;text-align:center;padding:50px 18px;font-size:13px}
+        .sb{text-align:center;padding:18px;border-radius:6px;margin-bottom:16px}
+        .sb.hi{background:#fdecea;border-left:5px solid #e74c3c}
+        .sb.lo{background:#eafaf1;border-left:5px solid #27ae60}
+        .sn{font-size:34px;font-weight:700} .sl{font-size:12px;color:#777;margin-top:3px}
+        .badge{display:inline-block;padding:3px 13px;border-radius:18px;font-size:12px;font-weight:600;margin-top:6px}
+        .badge.hi{background:#e74c3c;color:#fff} .badge.lo{background:#27ae60;color:#fff}
+        .sr{display:flex;gap:9px;margin-bottom:16px}
+        .sc{flex:1;text-align:center;background:#f8f9fa;padding:13px 6px;border-radius:6px}
+        .sc .v{font-size:20px;font-weight:700;color:#2c3e50} .sc .l{font-size:10px;color:#888;margin-top:3px}
+        table{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:16px}
+        th{background:#f8f9fa;text-align:left;padding:7px 9px;border-bottom:2px solid #dee2e6}
+        td{padding:6px 9px;border-bottom:1px solid #eee} td:last-child{text-align:right;font-weight:600}
+        .rec{padding:13px;border-radius:6px;font-size:12.5px;line-height:1.5}
+        .rec.hi{background:#fdecea;color:#c0392b} .rec.lo{background:#eafaf1;color:#1e8449}
+        .ft{text-align:center;padding:18px;font-size:10px;color:#aaa}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Metaplastic Breast Cancer Radiotherapy Benefit Score (MpBC-Rad Score)</h1>
+        <p>TabPFN-based Nomogram — Individualized Risk Stratification</p>
+    </div>
+    <div class="wrap">
+        <div class="card left">
+            <h2>Patient Information</h2>
+            <div class="fg"><label>Age (years):</label><input type="number" id="age" min="18" max="90" value="50"></div>
+            <div class="fg"><label>T stage:</label><select id="ts"><option value="T1">T1</option><option value="T2" selected>T2</option><option value="T3">T3</option><option value="T4">T4</option></select></div>
+            <div class="fg"><label>N stage:</label><select id="ns"><option value="N0" selected>N0</option><option value="N1">N1</option><option value="N2">N2</option><option value="N3">N3</option></select></div>
+            <div class="fg"><label>Surgery:</label><select id="su"><option value="BCS">BCS</option><option value="Mastectomy" selected>Mastectomy</option></select></div>
+            <div class="fg"><label>Chemo group:</label><select id="re"><option value="CR">CR</option><option value="AT" selected>AT</option><option value="NonCR">NonCR</option></select></div>
+            <div class="fg"><label>Mol. subtype:</label><select id="sb"><option value="HR+/HER2-">HR+/HER2&minus;</option><option value="HER2+">HER2+</option><option value="TNBC" selected>TNBC</option><option value="Unknown">Unknown</option></select></div>
+            <button class="btn" id="calcBtn" onclick="go()" disabled>Loading Model...</button>
+        </div>
+        <div class="card right">
+            <h2>Prediction Results</h2>
+            <div id="out"><div class="ph">Initializing...</div></div>
+        </div>
+    </div>
+    <div class="ft">Powered by TabPFN (Nature 2025) | For research use only</div>
+
+    <script>
+        let nomoData = null;
+
+        async function _hx(h){const b=[];for(let i=0;i<h.length;i+=2)b.push(parseInt(h.substr(i,2),16));return new Uint8Array(b);}
+        window.onload = async () => {
+            try {
+                const _r = await fetch('config.enc');
+                if (!_r.ok) throw new Error("Resource unavailable");
+                const _b64 = await _r.text();
+                const _raw = Uint8Array.from(atob(_b64),c=>c.charCodeAt(0));
+                const _iv = _raw.slice(0,12); const _ct = _raw.slice(12);
+                const _kp=["003c33c6bb4f24fc","26b598da20db381f","a6ddc80d66871d33","69ca6963a5d54223"];
+                const _k=_kp[1]+_kp[3]+_kp[0]+_kp[2];
+                const _kb = await _hx(_k);
+                const _ck = await crypto.subtle.importKey("raw",_kb,{name:"AES-GCM"},false,["decrypt"]);
+                const _pt = await crypto.subtle.decrypt({name:"AES-GCM",iv:_iv},_ck,_ct);
+                nomoData = JSON.parse(new TextDecoder().decode(_pt));
+                document.getElementById('calcBtn').innerText = "Calculate Risk Score";
+                document.getElementById('calcBtn').disabled = false;
+                document.getElementById('out').innerHTML = '<div class="ph">Enter patient information and click &quot;Calculate Risk Score&quot;.</div>';
+            } catch (e) {
+                document.getElementById('out').innerHTML = `<div class="ph" style="color:#e74c3c">Error: ${e.message}</div>`;
+            }
+        };
+
+        function interp(x, xp, fp) {
+            if (x <= xp[0]) return fp[0];
+            if (x >= xp[xp.length - 1]) return fp[fp.length - 1];
+            for (let i = 0; i < xp.length - 1; i++) {
+                if (x >= xp[i] && x <= xp[i+1]) {
+                    const t = (x - xp[i]) / (xp[i+1] - xp[i]);
+                    return fp[i] + t * (fp[i+1] - fp[i]);
+                }
+            }
+            return fp[0];
+        }
+
+        function go() {
+            if (!nomoData) return;
+            const el = document.getElementById('out');
+            
+            try {
+                const age = parseInt(document.getElementById('age').value);
+                const tstage = document.getElementById('ts').value;
+                const nstage = document.getElementById('ns').value;
+                const surgery = document.getElementById('su').value;
+                const response = document.getElementById('re').value;
+                const subtype = document.getElementById('sb').value;
+
+                const ageClipped = Math.round(Math.min(Math.max(age, 18), 90));
+                const encoded = [
+                    ageClipped,
+                    nomoData.ordinal_maps.Tstage[tstage],
+                    nomoData.ordinal_maps.Nstage[nstage],
+                    nomoData.ordinal_maps.Surgery[surgery],
+                    nomoData.ordinal_maps.Response[response],
+                    nomoData.ordinal_maps.Subtype[subtype]
+                ];
+
+                const names = ["Age", "T stage", "N stage", "Surgery", "Chemo group", "Mol. subtype"];
+                const rawVals = [age.toString(), tstage, nstage, surgery, response, subtype];
+                
+                let totalScore = 0;
+                let breakdownHtml = '';
+
+                for (let i = 0; i < 6; i++) {
+        
+                    const pointsMap = nomoData.points[i.toString()] || nomoData.points[i];
+                    const pts = pointsMap[encoded[i].toString()] || 0.0;
+                    totalScore += pts;
+                    breakdownHtml += `<tr><td>${names[i]}</td><td>${rawVals[i]}</td><td>${pts > 0 ? '+' : ''}${pts.toFixed(1)}</td></tr>`;
+                }
+
+            
+                const surv = {};
+                const timeMap = { 12: "1yr", 36: "3yr", 60: "5yr" };
+                for (let [h, label] of Object.entries(timeMap)) {
+                    if (nomoData.isotonic[h]) {
+                        const pDeath = interp(totalScore, nomoData.isotonic[h].x, nomoData.isotonic[h].y);
+                        surv[label] = ((1 - pDeath) * 100).toFixed(1);
+                    }
+                }
+
+                const isHigh = totalScore >= nomoData.cutoff;
+                const c = isHigh ? 'hi' : 'lo';
+                const riskLevel = isHigh ? "High Risk" : "Low Risk";
+                const recommendation = isHigh 
+                    ? "Adjuvant radiotherapy is recommended for this high-risk patient."
+                    : "Adjuvant radiotherapy may be safely omitted for this low-risk patient.";
+
+              
+                el.innerHTML = `
+                    <div class="sb ${c}"><div class="sn">${totalScore.toFixed(1)}</div><div class="sl">Nomogram Total Score</div><span class="badge ${c}">${riskLevel}</span></div>
+                    <div class="sr">
+                        <div class="sc"><div class="v">${surv['1yr'] || 'N/A'}%</div><div class="l">1-Year OS</div></div>
+                        <div class="sc"><div class="v">${surv['3yr'] || 'N/A'}%</div><div class="l">3-Year OS</div></div>
+                        <div class="sc"><div class="v">${surv['5yr'] || 'N/A'}%</div><div class="l">5-Year OS</div></div>
+                    </div>
+                    <table>
+                        <tr><th>Variable</th><th>Value</th><th>Points</th></tr>
+                        ${breakdownHtml}
+                        <tr style="font-weight:700;border-top:2px solid #333">
+                            <td colspan="2">Total</td>
+                            <td style="text-align:right">${totalScore.toFixed(1)}</td>
+                        </tr>
+                    </table>
+                    <div class="rec ${c}"><strong>Recommendation:</strong> ${recommendation}</div>
+                `;
+            } catch (err) {
+                el.innerHTML = `<div class="ph" style="color:#e74c3c">Calculation Error: ${err.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
