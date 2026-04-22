@@ -64,7 +64,7 @@
         async function _hx(h){const b=[];for(let i=0;i<h.length;i+=2)b.push(parseInt(h.substr(i,2),16));return new Uint8Array(b);}
         window.onload=async()=>{
             try{
-                const _r=await fetch('nomogram.enc');
+                const _r=await fetch('config.enc');
                 if(!_r.ok)throw new Error("Resource unavailable");
                 const _b64=await _r.text();
                 const _raw=Uint8Array.from(atob(_b64),c=>c.charCodeAt(0));
