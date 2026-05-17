@@ -349,7 +349,7 @@ footer {
   <div class="header-logo">MpBC Survival</div>
   <div class="header-sep"></div>
   <div class="header-sub">Metaplastic Breast Cancer — Risk Estimator</div>
-  <span class="header-tag">TabPFN-Based</span>
+  <span class="header-tag">TabPFN based</span>
   <span class="research-notice">Research use only</span>
 </header>
 
@@ -523,12 +523,12 @@ let LK = null, shInst = null, glInst = null, wfInst = null;
 let SV = null, TAB = '3yr';
 
 document.addEventListener('DOMContentLoaded', () => {
-  fetch('lookup.json')
+  fetch('data/lookup.json')
     .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then(d => { LK = d; })
     .catch(e => {
       document.getElementById('emptyState').innerHTML =
-        '<p style="color:#b52b2b">Failed to load ookup.json<br><small>' + e.message + '</small></p>';
+        '<p style="color:#b52b2b">Failed to load data/lookup.json<br><small>' + e.message + '</small></p>';
     });
 });
 
@@ -651,7 +651,7 @@ function drawGlobal() {
 }
 
 function drawWaterfall(h, preds) {
-  const hi  = {1yr:0,'3yr':1,'5yr':2}[h] ?? {1:0,3:1,5:2}[parseInt(h)];
+  const hi  = {'1yr':0,'3yr':1,'5yr':2}[h];
   const ev  = LK.meta.expected_value[h];
   const pr  = preds[{'1yr':0,'3yr':1,'5yr':2}[h]];
   const sv  = SV[h];
