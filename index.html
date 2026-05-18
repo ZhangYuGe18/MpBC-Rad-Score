@@ -465,7 +465,7 @@ footer {
     <div class="chart-row">
       <div class="chart-card" id="shapCard">
         <div class="card-title">Individual patient attribution</div>
-        <div class="card-note">→ red bar = raised this patient's death risk vs average; ← green = lowered it. Longer bar = stronger effect.</div>
+        <div class="card-note"> The number of percentage points this factor added to (red →) or subtracted from (← green) this patient's predicted death probability, compared to the population average.</div>
         <div class="tabs">
           <button class="tab active" onclick="switchTab(this,'1yr')">1-year</button>
           <button class="tab" onclick="switchTab(this,'3yr')">3-year</button>
@@ -476,14 +476,14 @@ footer {
 
       <div class="chart-card" id="globalCard">
         <div class="card-title">Feature importance across horizons</div>
-        <div class="card-note">Longer bar = bigger influence on this prediction. Compare colours to see if a factor's weight shifts between 1, 3, and 5 years.</div>
+        <div class="card-note">The same SHAP values from the attribution chart above, but with direction removed. This answers two questions: which factor mattered most for this patient's prediction, and whether that ranking shifts between the 1-year, 3-year, and 5-year models. The three colours are three separate models run independently.</div>
         <div class="chart-wrap"><canvas id="globalChart"></canvas></div>
       </div>
     </div>
 
     <div class="waterfall-card" id="waterfallCard">
       <div class="card-title">Prediction breakdown — <span id="wfHorizon">3-year</span></div>
-      <div class="card-note">Grey = population average → red bars push risk up, green push it down → blue bar = this patient's final prediction.</div>
+      <div class="card-note">The grey bar is the average predicted death probability across all training patients. Each coloured bar is one feature's SHAP value, chaining left to right. The blue bar on the right is the final predicted death probability for this patient, equal to the baseline plus all SHAP values summed.</div>
       <div style="position:relative;height:160px;margin-top:.9rem"><canvas id="waterfallChart"></canvas></div>
     </div>
 
