@@ -14,7 +14,8 @@ body {
   font-family: 'DM Sans', system-ui, sans-serif;
   background: #f5f6f8;
   color: #1a2535;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -68,6 +69,7 @@ body {
   display: grid;
   grid-template-columns: 288px 1fr;
   flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -77,6 +79,7 @@ aside {
   border-right: 1px solid #e4e8ee;
   padding: 1.75rem 1.4rem;
   overflow-y: auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -171,6 +174,7 @@ input[type=range]::-webkit-slider-thumb {
 main {
   padding: 2rem 2.25rem;
   overflow-y: auto;
+  min-height: 0;
   background: #f5f6f8;
 }
 .empty-state {
@@ -306,19 +310,6 @@ main {
   transition: all .12s;
 }
 .tab.active { background: #1a2535; color: #fff; border-color: #1a2535; }
-
-/* Waterfall */
-.waterfall-card {
-  background: #fff;
-  border: 1px solid #e4e8ee;
-  border-radius: 8px;
-  padding: 1.25rem 1.3rem;
-  margin-top: 1rem;
-  opacity: 0;
-  transform: translateY(6px);
-  transition: opacity .3s .06s, transform .3s .06s;
-}
-.waterfall-card.show { opacity: 1; transform: none; }
 
 /* Footer */
 footer {
@@ -491,11 +482,6 @@ footer {
       </div>
     </div>
 
-    <div class="waterfall-card" id="waterfallCard">
-      <div class="card-title">Prediction breakdown — <span id="wfHorizon">3-year</span></div>
-      <div class="card-note">How to read: start from the grey bar (population average). Each red/green bar pushes the death probability up or down. The final blue bar is this patient's predicted death probability.</div>
-      <div class="wf-wrap" style="height:160px"><canvas id="waterfallChart"></canvas></div>
-    </div>
 
   </div>
 </main>
@@ -514,7 +500,7 @@ const SANS = "'DM Sans', system-ui, sans-serif";
 const LC   = '#6b7a8d';
 const GC   = 'rgba(0,0,0,.06)';
 
-let LK = null, shInst = null, glInst = null, wfInst = null;
+let LK = null, shInst = null, glInst = null;
 let SV = null, TAB = '3yr';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -589,10 +575,9 @@ function render(surv, preds) {
 
   drawShap(TAB);
   drawGlobal();
-  drawWaterfall(TAB, preds);
 
   setTimeout(() => {
-    document.querySelectorAll('.surv-card, .risk-row, .chart-card, .waterfall-card')
+    document.querySelectorAll('.surv-card, .risk-row, .chart-card')
       .forEach((el, i) => setTimeout(() => el.classList.add('show'), i * 55));
   }, 30);
 }
@@ -640,48 +625,6 @@ function drawGlobal() {
         x:{ticks:{font:{family:SANS,size:10},color:LC},grid:{display:false}},
         y:{grid:{color:GC},ticks:{font:{family:MONO,size:10},color:LC},
            title:{display:true,text:'|SHAP|',color:LC,font:{size:10,family:SANS}}}
-      }
-    }
-  });
-}
-
-function drawWaterfall(h, preds) {
-  const hi  = {'1yr':0,'3yr':1,'5yr':2}[h];
-  const ev  = LK.meta.expected_value[h];
-  const pr  = preds[{'1yr':0,'3yr':1,'5yr':2}[h]];
-  const sv  = SV[h];
-  document.getElementById('wfHorizon').textContent = {'1yr':'1-year','3yr':'3-year','5yr':'5-year'}[h];
-
-  const ord  = [...sv.keys()].sort((a,b) => Math.abs(sv[b]) - Math.abs(sv[a]));
-  const lbls = ['Baseline', ...ord.map(i=>FL[i]), 'Prediction'];
-  let run    = ev;
-  const bars = [[0, +ev.toFixed(4)]];
-  ord.forEach(i => {
-    const v = sv[i]; const fr = run; run += v;
-    bars.push(v>=0 ? [+fr.toFixed(4),+run.toFixed(4)] : [+run.toFixed(4),+fr.toFixed(4)]);
-  });
-  bars.push([0, +pr.toFixed(4)]);
-  const bg = [
-    'rgba(26,37,53,.42)',
-    ...ord.map(i => sv[i]>=0 ? 'rgba(181,43,43,.70)' : 'rgba(14,124,80,.70)'),
-    'rgba(40,96,168,.72)',
-  ];
-
-  if (wfInst) wfInst.destroy();
-  wfInst = new Chart(document.getElementById('waterfallChart'), {
-    type:'bar',
-    data:{labels:lbls, datasets:[{data:bars, backgroundColor:bg, borderWidth:0}]},
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>{
-        if(!Array.isArray(c.raw)) return '';
-        const d = +(c.raw[1]-c.raw[0]).toFixed(4);
-        return ` ${d>=0?'+':''}${d} → ${c.raw[1].toFixed(4)}`;
-      }}}},
-      scales:{
-        x:{ticks:{font:{family:SANS,size:9.5},color:LC,maxRotation:20},grid:{display:false}},
-        y:{min:0,max:1,grid:{color:GC},ticks:{font:{family:MONO,size:10},color:LC},
-           title:{display:true,text:'Death probability',color:LC,font:{size:10,family:SANS}}}
       }
     }
   });
