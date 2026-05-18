@@ -275,7 +275,6 @@ main {
 .risk-pill.mid  { background: #fef6ec; color: #b45309; }
 .risk-pill.high { background: #fdf0f0; color: #b52b2b; }
 .risk-detail { font-size: .78rem; color: #4a5568; line-height: 1.6; flex: 1; }
-.risk-note { font-size: .66rem; color: #a0aab6; margin-top: .22rem; }
 
 /* Chart area */
 .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
@@ -320,7 +319,6 @@ main {
   transition: opacity .3s .06s, transform .3s .06s;
 }
 .waterfall-card.show { opacity: 1; transform: none; }
-.wf-wrap { position: relative; height: 240px; margin-top: .9rem; }
 
 /* Footer */
 footer {
@@ -468,10 +466,7 @@ footer {
       <span class="risk-pill" id="riskPill"></span>
       <div class="risk-detail">
         <span id="riskText"></span>
-        <div class="risk-note">
-          Blend: w × TabPFN + (1−w) × Ridge &nbsp;·&nbsp;
-          1yr w = 0.0 &nbsp;·&nbsp; 3yr w = 0.1 &nbsp;·&nbsp; 5yr w = 0.2
-        </div>
+        <span style="font-size:.66rem;color:#a0aab6;margin-left:.5rem">Based on 3-year OS</span>
       </div>
     </div>
 
@@ -480,7 +475,7 @@ footer {
     <div class="chart-row">
       <div class="chart-card" id="shapCard">
         <div class="card-title">Individual patient attribution</div>
-        <div class="card-note">Each bar shows how much a feature shifts this patient's death probability above or below the population baseline.</div>
+        <div class="card-note">How to read: red bar = this feature raises death risk for this patient; green = lowers it. Length = strength of effect. Switch tabs to see how each feature's contribution changes across time points.</div>
         <div class="tabs">
           <button class="tab active" onclick="switchTab(this,'1yr')">1-year</button>
           <button class="tab" onclick="switchTab(this,'3yr')">3-year</button>
@@ -491,15 +486,15 @@ footer {
 
       <div class="chart-card" id="globalCard">
         <div class="card-title">Feature importance across horizons</div>
-        <div class="card-note">Mean absolute SHAP magnitude at each time horizon. Larger bar indicates stronger influence on prediction.</div>
+        <div class="card-note">How to read: each cluster shows the same feature at 1/3/5 years. A longer bar means stronger influence at that time point — some features matter more early, others later.</div>
         <div class="chart-wrap"><canvas id="globalChart"></canvas></div>
       </div>
     </div>
 
     <div class="waterfall-card" id="waterfallCard">
       <div class="card-title">Prediction breakdown — <span id="wfHorizon">3-year</span></div>
-      <div class="card-note">Starting from the population baseline, each feature shifts the predicted death probability until arriving at this patient's estimate.</div>
-      <div class="wf-wrap"><canvas id="waterfallChart"></canvas></div>
+      <div class="card-note">How to read: start from the grey bar (population average). Each red/green bar pushes the death probability up or down. The final blue bar is this patient's predicted death probability.</div>
+      <div class="wf-wrap" style="height:160px"><canvas id="waterfallChart"></canvas></div>
     </div>
 
   </div>
