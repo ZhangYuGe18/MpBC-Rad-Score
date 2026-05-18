@@ -68,8 +68,7 @@ body {
 .app-body {
   display: grid;
   grid-template-columns: 288px 1fr;
-  flex: 1;
-  min-height: 0;
+  height: calc(100vh - 56px);
   overflow: hidden;
 }
 
@@ -78,8 +77,8 @@ aside {
   background: #fff;
   border-right: 1px solid #e4e8ee;
   padding: 1.75rem 1.4rem;
+  height: 100%;
   overflow-y: auto;
-  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -174,7 +173,7 @@ input[type=range]::-webkit-slider-thumb {
 main {
   padding: 2rem 2.25rem;
   overflow-y: auto;
-  min-height: 0;
+  height: 100%;
   background: #f5f6f8;
 }
 .empty-state {
@@ -466,7 +465,7 @@ footer {
     <div class="chart-row">
       <div class="chart-card" id="shapCard">
         <div class="card-title">Individual patient attribution</div>
-        <div class="card-note">How to read: red bar = this feature raises death risk for this patient; green = lowers it. Length = strength of effect. Switch tabs to see how each feature's contribution changes across time points.</div>
+        <div class="card-note">→ red bar = raised this patient's death risk vs average; ← green = lowered it. Longer bar = stronger effect.</div>
         <div class="tabs">
           <button class="tab active" onclick="switchTab(this,'1yr')">1-year</button>
           <button class="tab" onclick="switchTab(this,'3yr')">3-year</button>
@@ -477,11 +476,16 @@ footer {
 
       <div class="chart-card" id="globalCard">
         <div class="card-title">Feature importance across horizons</div>
-        <div class="card-note">How to read: each cluster shows the same feature at 1/3/5 years. A longer bar means stronger influence at that time point — some features matter more early, others later.</div>
+        <div class="card-note">Longer bar = bigger influence on this prediction. Compare colours to see if a factor's weight shifts between 1, 3, and 5 years.</div>
         <div class="chart-wrap"><canvas id="globalChart"></canvas></div>
       </div>
     </div>
 
+    <div class="waterfall-card" id="waterfallCard">
+      <div class="card-title">Prediction breakdown — <span id="wfHorizon">3-year</span></div>
+      <div class="card-note">Grey = population average → red bars push risk up, green push it down → blue bar = this patient's final prediction.</div>
+      <div style="position:relative;height:160px;margin-top:.9rem"><canvas id="waterfallChart"></canvas></div>
+    </div>
 
   </div>
 </main>
@@ -500,7 +504,7 @@ const SANS = "'DM Sans', system-ui, sans-serif";
 const LC   = '#6b7a8d';
 const GC   = 'rgba(0,0,0,.06)';
 
-let LK = null, shInst = null, glInst = null;
+let LK = null, shInst = null, glInst = null, wfInst = null;
 let SV = null, TAB = '3yr';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -575,6 +579,7 @@ function render(surv, preds) {
 
   drawShap(TAB);
   drawGlobal();
+  drawWaterfall(TAB, preds);
 
   setTimeout(() => {
     document.querySelectorAll('.surv-card, .risk-row, .chart-card')
@@ -625,6 +630,51 @@ function drawGlobal() {
         x:{ticks:{font:{family:SANS,size:10},color:LC},grid:{display:false}},
         y:{grid:{color:GC},ticks:{font:{family:MONO,size:10},color:LC},
            title:{display:true,text:'|SHAP|',color:LC,font:{size:10,family:SANS}}}
+      }
+    }
+  });
+}
+
+
+function drawWaterfall(h, preds) {
+  const hi  = {'1yr':0,'3yr':1,'5yr':2}[h];
+  const ev  = LK.meta.expected_value[h];
+  const pr  = preds[hi];
+  const sv  = SV[h];
+  const el  = document.getElementById('wfHorizon');
+  if (el) el.textContent = {'1yr':'1-year','3yr':'3-year','5yr':'5-year'}[h];
+
+  const ord  = [...sv.keys()].sort((a,b) => Math.abs(sv[b]) - Math.abs(sv[a]));
+  const lbls = ['Baseline', ...ord.map(i=>FL[i]), 'Prediction'];
+  let run    = ev;
+  const bars = [[0, +ev.toFixed(4)]];
+  ord.forEach(i => {
+    const v = sv[i]; const fr = run; run += v;
+    bars.push(v>=0 ? [+fr.toFixed(4),+run.toFixed(4)] : [+run.toFixed(4),+fr.toFixed(4)]);
+  });
+  bars.push([0, +pr.toFixed(4)]);
+  const bg = [
+    'rgba(26,37,53,.42)',
+    ...ord.map(i => sv[i]>=0 ? 'rgba(181,43,43,.70)' : 'rgba(14,124,80,.70)'),
+    'rgba(40,96,168,.72)',
+  ];
+  if (wfInst) wfInst.destroy();
+  const canvas = document.getElementById('waterfallChart');
+  if (!canvas) return;
+  wfInst = new Chart(canvas, {
+    type:'bar',
+    data:{labels:lbls, datasets:[{data:bars, backgroundColor:bg, borderWidth:0}]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>{
+        if(!Array.isArray(c.raw)) return '';
+        const d = +(c.raw[1]-c.raw[0]).toFixed(4);
+        return ' '+(d>=0?'+':'')+d+' → '+c.raw[1].toFixed(4);
+      }}}},
+      scales:{
+        x:{ticks:{font:{family:SANS,size:9.5},color:LC,maxRotation:20},grid:{display:false}},
+        y:{min:0,max:1,grid:{color:GC},ticks:{font:{family:MONO,size:10},color:LC},
+           title:{display:true,text:'Death probability',color:LC,font:{size:10,family:SANS}}}
       }
     }
   });
